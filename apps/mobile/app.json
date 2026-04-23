@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Cvrčak",
+    "slug": "cvrcak",
+    "version": "1.0.0",
+    "scheme": "cvrcak",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.cvrcak.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "extra": {
+      "supabaseUrl": "https://bmfbibwphuocdevhbypm.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtZmJpYndwaHVvY2RldmhieXBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTU0NDEsImV4cCI6MjA5MjUzMTQ0MX0.XU_il17dWSLLkn7Wsd7fcGV1bR_FO-SjlKmmIHh25eQ"
+    }
+  }
+}
