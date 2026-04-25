@@ -57,7 +57,7 @@ export default function RewardScreen({
 
       {/* Stars */}
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 24 }}>
-        {Array.from({ length: correct }).map((_, i) => (
+        {Array.from({ length: Math.min(correct, 3) }).map((_, i) => (
           <Text key={i} style={{ fontSize: 32 }}>
             ⭐
           </Text>
