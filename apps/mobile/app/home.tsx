@@ -1,13 +1,31 @@
 import { useState, useRef } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Animated, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Animated,
+  Pressable,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { colors, fonts, radius, spacing } from "../theme/tokens";
+import { supabase } from "../lib/supabase";
+
+type Citation = { page: number; excerpt: string };
+type QuickResponse = { answer: string; citations: Citation[] } | null;
 
 export default function HomeScreen() {
   const [showVoiceTip, setShowVoiceTip] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerAnim = useRef(new Animated.Value(-280)).current;
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [quickResponse, setQuickResponse] = useState<QuickResponse>(null);
 
   function handleMicPress() {
     setShowVoiceTip(true);
@@ -36,234 +54,192 @@ export default function HomeScreen() {
     setTimeout(() => router.push(route as any), 220);
   }
 
+  async function send() {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+    setLoading(true);
+    setQuickResponse(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("ask", {
+        body: { question: text },
+      });
+      if (error) throw error;
+      setQuickResponse({
+        answer: data.answer ?? "Nešto nije u redu.",
+        citations: data.citations ?? [],
+      });
+    } catch {
+      setQuickResponse({
+        answer: "Nema interneta. Provjeri vezu i pokušaj ponovo.",
+        citations: [],
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.cream2 }}>
       <View style={{ flex: 1 }}>
-
-        {/* Header */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: spacing.pagePadding,
-            paddingTop: 16,
-            paddingBottom: 12,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <TouchableOpacity onPress={openDrawer} activeOpacity={0.7}>
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: radius.pill,
-                  backgroundColor: colors.ink,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={{ fontFamily: fonts.displayItalic, fontSize: 14, color: colors.cream }}>
-                  C
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <Text style={{ fontFamily: fonts.display, fontSize: 17, color: colors.ink }}>
-              Zdravo,{" "}
-              <Text style={{ fontFamily: fonts.displayItalic, color: colors.accentWarm }}>
-                Marko
-              </Text>
-            </Text>
-          </View>
-
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 4,
-              backgroundColor: colors.popPeach,
-              borderRadius: radius.pill,
-              paddingVertical: 5,
-              paddingHorizontal: 10,
-            }}
-          >
-            <Text style={{ fontSize: 12 }}>🔥</Text>
-            <Text style={{ fontFamily: fonts.monoMedium, fontSize: 12, color: colors.ink }}>
-              12
-            </Text>
-          </View>
-        </View>
-
-        {/* Lesson zone */}
-        <ScrollView
+        <KeyboardAvoidingView
           style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingHorizontal: spacing.pagePadding,
-            paddingBottom: 16,
-          }}
-          showsVerticalScrollIndicator={false}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <Text
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: 11,
-              color: colors.ink3,
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-              marginBottom: 12,
-            }}
-          >
-            Lekcije
-          </Text>
 
-          {/* Active episode card */}
-          <TouchableOpacity
-            onPress={() => router.push("/chapter")}
-            activeOpacity={0.9}
-            style={{
-              backgroundColor: colors.ink,
-              borderRadius: radius.hero,
-              padding: 20,
-              marginBottom: 12,
-            }}
-          >
-            {/* Speaker chips */}
-            <View style={{ flexDirection: "row", gap: 6, marginBottom: 14 }}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 5,
-                  backgroundColor: "rgba(255,255,255,0.1)",
-                  borderRadius: radius.pill,
-                  paddingVertical: 4,
-                  paddingLeft: 4,
-                  paddingRight: 10,
-                }}
-              >
-                <View
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: radius.pill,
-                    backgroundColor: colors.popPeach,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ fontFamily: fonts.displayItalic, fontSize: 10, color: colors.ink }}>
-                    N
-                  </Text>
-                </View>
-                <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.popPeach }}>
-                  Nastavnica
-                </Text>
-              </View>
-
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 5,
-                  backgroundColor: "rgba(255,255,255,0.1)",
-                  borderRadius: radius.pill,
-                  paddingVertical: 4,
-                  paddingLeft: 4,
-                  paddingRight: 10,
-                }}
-              >
-                <View
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: radius.pill,
-                    backgroundColor: colors.cream,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text style={{ fontFamily: fonts.displayItalic, fontSize: 10, color: colors.ink }}>
-                    M
-                  </Text>
-                </View>
-                <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.cream }}>
-                  Marko
-                </Text>
-              </View>
-            </View>
-
-            {/* Subject label */}
-            <Text
-              style={{
-                fontFamily: fonts.mono,
-                fontSize: 10,
-                color: colors.accentWarm,
-                textTransform: "uppercase",
-                letterSpacing: 1,
-                marginBottom: 6,
-              }}
-            >
-              Matematika 5 · Poglavlje 4
-            </Text>
-
-            {/* Title */}
-            <Text
-              style={{
-                fontFamily: fonts.display,
-                fontSize: 19,
-                color: colors.cream,
-                lineHeight: 26,
-                marginBottom: 8,
-              }}
-            >
-              Sabiranje razlomaka sa različitim nazivnicima
-            </Text>
-
-            {/* Duration */}
-            <Text style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted }}>
-              ~8 min
-            </Text>
-
-            {/* Play row */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 16 }}>
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: radius.pill,
-                  backgroundColor: colors.popPeach,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text style={{ fontSize: 18, color: colors.ink, marginLeft: 3 }}>▶</Text>
-              </View>
-              <View>
-                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.cream }}>
-                  Slušaj lekciju
-                </Text>
-                <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 1 }}>
-                  Audio pregled · 2 glasa
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-
-          {/* Coming-soon card */}
+          {/* Header */}
           <View
             style={{
-              backgroundColor: colors.cream3,
-              borderRadius: radius.card,
-              borderWidth: 1,
-              borderColor: colors.line,
-              padding: 16,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "space-between",
-              opacity: 0.6,
+              paddingHorizontal: spacing.pagePadding,
+              paddingTop: 16,
+              paddingBottom: 12,
             }}
           >
-            <View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <TouchableOpacity onPress={openDrawer} activeOpacity={0.7}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: radius.pill,
+                    backgroundColor: colors.ink,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontFamily: fonts.displayItalic, fontSize: 14, color: colors.cream }}>
+                    C
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <Text style={{ fontFamily: fonts.display, fontSize: 17, color: colors.ink }}>
+                Zdravo,{" "}
+                <Text style={{ fontFamily: fonts.displayItalic, color: colors.accentWarm }}>
+                  Marko
+                </Text>
+              </Text>
+            </View>
+
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: colors.popPeach,
+                borderRadius: radius.pill,
+                paddingVertical: 5,
+                paddingHorizontal: 10,
+              }}
+            >
+              <Text style={{ fontSize: 12 }}>🔥</Text>
+              <Text style={{ fontFamily: fonts.monoMedium, fontSize: 12, color: colors.ink }}>
+                12
+              </Text>
+            </View>
+          </View>
+
+          {/* Lesson zone */}
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingHorizontal: spacing.pagePadding,
+              paddingBottom: 16,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text
+              style={{
+                fontFamily: fonts.mono,
+                fontSize: 11,
+                color: colors.ink3,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                marginBottom: 12,
+              }}
+            >
+              Lekcije
+            </Text>
+
+            {/* Active episode card */}
+            <TouchableOpacity
+              onPress={() => router.push("/chapter")}
+              activeOpacity={0.9}
+              style={{
+                backgroundColor: colors.ink,
+                borderRadius: radius.hero,
+                padding: 20,
+                marginBottom: 12,
+              }}
+            >
+              {/* Speaker chips */}
+              <View style={{ flexDirection: "row", gap: 6, marginBottom: 14 }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                    borderRadius: radius.pill,
+                    paddingVertical: 4,
+                    paddingLeft: 4,
+                    paddingRight: 10,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: radius.pill,
+                      backgroundColor: colors.popPeach,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontFamily: fonts.displayItalic, fontSize: 10, color: colors.ink }}>
+                      N
+                    </Text>
+                  </View>
+                  <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.popPeach }}>
+                    Nastavnica
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                    backgroundColor: "rgba(255,255,255,0.1)",
+                    borderRadius: radius.pill,
+                    paddingVertical: 4,
+                    paddingLeft: 4,
+                    paddingRight: 10,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: radius.pill,
+                      backgroundColor: colors.cream,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontFamily: fonts.displayItalic, fontSize: 10, color: colors.ink }}>
+                      M
+                    </Text>
+                  </View>
+                  <Text style={{ fontFamily: fonts.body, fontSize: 11, color: colors.cream }}>
+                    Marko
+                  </Text>
+                </View>
+              </View>
+
+              {/* Subject label */}
               <Text
                 style={{
                   fontFamily: fonts.mono,
@@ -271,134 +247,295 @@ export default function HomeScreen() {
                   color: colors.accentWarm,
                   textTransform: "uppercase",
                   letterSpacing: 1,
-                  marginBottom: 4,
+                  marginBottom: 6,
                 }}
               >
-                Matematika 5 · Poglavlje 5
+                Matematika 5 · Poglavlje 4
               </Text>
-              <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink }}>
-                Množenje razlomaka
+
+              {/* Title */}
+              <Text
+                style={{
+                  fontFamily: fonts.display,
+                  fontSize: 19,
+                  color: colors.cream,
+                  lineHeight: 26,
+                  marginBottom: 8,
+                }}
+              >
+                Sabiranje razlomaka sa različitim nazivnicima
               </Text>
-            </View>
+
+              {/* Duration */}
+              <Text style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.muted }}>
+                ~8 min
+              </Text>
+
+              {/* Play row */}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 16 }}>
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: radius.pill,
+                    backgroundColor: colors.popPeach,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 18, color: colors.ink, marginLeft: 3 }}>▶</Text>
+                </View>
+                <View>
+                  <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.cream }}>
+                    Slušaj lekciju
+                  </Text>
+                  <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 1 }}>
+                    Audio pregled · 2 glasa
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Coming-soon card */}
             <View
               style={{
-                backgroundColor: colors.popLavender,
-                borderRadius: radius.pill,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
+                backgroundColor: colors.cream3,
+                borderRadius: radius.card,
+                borderWidth: 1,
+                borderColor: colors.line,
+                padding: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                opacity: 0.6,
               }}
             >
-              <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: colors.ink3 }}>
-                Uskoro
-              </Text>
-            </View>
-          </View>
-        </ScrollView>
-
-        {/* Chat zone — pinned bottom */}
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderTopColor: colors.line,
-            paddingHorizontal: spacing.pagePadding,
-            paddingTop: 16,
-            paddingBottom: 36,
-            backgroundColor: colors.cream2,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: 11,
-              color: colors.ink3,
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-              marginBottom: 10,
-            }}
-          >
-            Pitaj pitanje
-          </Text>
-
-          <View style={{ position: "relative" }}>
-            {showVoiceTip && (
+              <View>
+                <Text
+                  style={{
+                    fontFamily: fonts.mono,
+                    fontSize: 10,
+                    color: colors.accentWarm,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 4,
+                  }}
+                >
+                  Matematika 5 · Poglavlje 5
+                </Text>
+                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink }}>
+                  Množenje razlomaka
+                </Text>
+              </View>
               <View
                 style={{
-                  position: "absolute",
-                  bottom: 52,
-                  right: 0,
-                  backgroundColor: colors.ink,
+                  backgroundColor: colors.popLavender,
                   borderRadius: radius.pill,
-                  paddingVertical: 6,
-                  paddingHorizontal: 12,
-                  zIndex: 10,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
                 }}
               >
-                <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.cream }}>
-                  Glasovni unos uskoro
+                <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: colors.ink3 }}>
+                  Uskoro
+                </Text>
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Chat zone — pinned bottom */}
+          <View
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: colors.line,
+              paddingHorizontal: spacing.pagePadding,
+              paddingTop: 16,
+              paddingBottom: 36,
+              backgroundColor: colors.cream2,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: fonts.mono,
+                fontSize: 11,
+                color: colors.ink3,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                marginBottom: 10,
+              }}
+            >
+              Pitaj pitanje
+            </Text>
+
+            {/* Inline response card */}
+            {quickResponse && (
+              <View
+                style={{
+                  marginBottom: 12,
+                  backgroundColor: colors.cream,
+                  borderRadius: radius.card,
+                  borderWidth: 1,
+                  borderColor: colors.line,
+                  padding: 14,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => setQuickResponse(null)}
+                  style={{ position: "absolute", top: 10, right: 10, padding: 4 }}
+                  hitSlop={8}
+                >
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>✕</Text>
+                </TouchableOpacity>
+                <Text
+                  style={{
+                    fontFamily: fonts.body,
+                    fontSize: 14,
+                    color: colors.ink,
+                    lineHeight: 20,
+                    paddingRight: 20,
+                  }}
+                  numberOfLines={5}
+                >
+                  {quickResponse.answer}
+                </Text>
+                {quickResponse.citations.length > 0 && (
+                  <View
+                    style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 }}
+                  >
+                    {quickResponse.citations.map((c, i) => (
+                      <View
+                        key={i}
+                        style={{
+                          backgroundColor: colors.popPeach,
+                          borderRadius: radius.pill,
+                          paddingHorizontal: 10,
+                          paddingVertical: 3,
+                        }}
+                      >
+                        <Text style={{ fontFamily: fonts.mono, fontSize: 11, color: colors.ink }}>
+                          str. {c.page}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                <TouchableOpacity
+                  onPress={() => router.push("/chat")}
+                  style={{ marginTop: 10 }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.accentWarm }}>
+                    Nastavi razgovor →
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Loading indicator */}
+            {loading && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 12,
+                  paddingHorizontal: 4,
+                }}
+              >
+                <ActivityIndicator size="small" color={colors.muted} />
+                <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.muted }}>
+                  Cvrčak razmišlja...
                 </Text>
               </View>
             )}
 
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-                backgroundColor: colors.cream,
-                borderRadius: radius.pill,
-                borderWidth: 1,
-                borderColor: colors.line,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-              }}
-            >
-              <TouchableOpacity
-                onPress={() => router.push("/chat")}
-                activeOpacity={0.85}
-                style={{ flex: 1 }}
-              >
-                <Text
+            {/* Voice tip tooltip */}
+            <View style={{ position: "relative" }}>
+              {showVoiceTip && (
+                <View
                   style={{
-                    fontFamily: fonts.body,
-                    fontSize: 15,
-                    color: colors.muted,
+                    position: "absolute",
+                    bottom: 52,
+                    right: 0,
+                    backgroundColor: colors.ink,
+                    borderRadius: radius.pill,
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    zIndex: 10,
                   }}
                 >
-                  Šta te muči danas?
-                </Text>
-              </TouchableOpacity>
+                  <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.cream }}>
+                    Glasovni unos uskoro
+                  </Text>
+                </View>
+              )}
 
-              <TouchableOpacity
-                onPress={handleMicPress}
-                activeOpacity={0.75}
+              {/* Input row */}
+              <View
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: radius.pill,
-                  backgroundColor: colors.ink,
+                  flexDirection: "row",
                   alignItems: "center",
-                  justifyContent: "center",
+                  gap: 10,
+                  backgroundColor: colors.cream,
+                  borderRadius: radius.pill,
+                  borderWidth: 1,
+                  borderColor: colors.line,
+                  paddingVertical: 10,
+                  paddingHorizontal: 16,
                 }}
               >
-                <Text style={{ fontSize: 16 }}>🎤</Text>
-              </TouchableOpacity>
+                <TextInput
+                  value={input}
+                  onChangeText={setInput}
+                  placeholder="Šta te muči danas?"
+                  placeholderTextColor={colors.muted}
+                  style={{
+                    flex: 1,
+                    fontFamily: fonts.body,
+                    fontSize: 15,
+                    color: colors.ink,
+                  }}
+                  returnKeyType="send"
+                  onSubmitEditing={send}
+                  blurOnSubmit={false}
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  onPress={input.trim() ? send : handleMicPress}
+                  activeOpacity={0.75}
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: radius.pill,
+                    backgroundColor: colors.ink,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {input.trim() ? (
+                    <Text style={{ color: colors.cream, fontSize: 16 }}>↑</Text>
+                  ) : (
+                    <Text style={{ fontSize: 16 }}>🎤</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
+
+            <Text
+              style={{
+                fontFamily: fonts.body,
+                fontSize: 11,
+                color: colors.muted,
+                textAlign: "center",
+                marginTop: 8,
+              }}
+            >
+              Pitaj o gradivu iz knjige · Cvrčak odgovara
+            </Text>
           </View>
 
-          <Text
-            style={{
-              fontFamily: fonts.body,
-              fontSize: 11,
-              color: colors.muted,
-              textAlign: "center",
-              marginTop: 8,
-            }}
-          >
-            Pitaj o gradivu iz knjige · Cvrčak odgovara
-          </Text>
-        </View>
+        </KeyboardAvoidingView>
 
-        {/* Drawer backdrop */}
+        {/* Drawer backdrop — absolute positioned, outside KeyboardAvoidingView */}
         {drawerOpen && (
           <Pressable
             onPress={closeDrawer}
@@ -414,7 +551,7 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Drawer panel */}
+        {/* Drawer panel — absolute positioned, outside KeyboardAvoidingView */}
         <Animated.View
           style={{
             position: "absolute",
