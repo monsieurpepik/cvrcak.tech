@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { colors, fonts, radius } from "../theme/tokens";
 
@@ -134,11 +134,10 @@ export default function ExerciseCard({
           }}
         >
           {questionParts.map((part, i) => (
-            <>
-              <Text key={`part-${i}`}>{part}</Text>
+            <React.Fragment key={i}>
+              <Text>{part}</Text>
               {i < questionParts.length - 1 && (
                 <Text
-                  key={`q-${i}`}
                   style={{
                     color: colors.popPeach,
                     backgroundColor: "rgba(255,255,255,0.15)",
@@ -149,7 +148,7 @@ export default function ExerciseCard({
                   {"?"}
                 </Text>
               )}
-            </>
+            </React.Fragment>
           ))}
         </Text>
       </View>

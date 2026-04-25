@@ -41,6 +41,8 @@ const LESSON = {
   ],
 };
 
+// Progress bar: segment 0 = concept step, segments 1-3 = exercises 1-3.
+// Step 4 (reward) hides the header entirely so segment 4 is never rendered.
 function segmentColor(segIndex: number, currentStep: number): string {
   if (segIndex < currentStep) return colors.success;
   if (segIndex === currentStep) return colors.accentWarm;
@@ -53,7 +55,7 @@ export default function VisualChapterScreen() {
 
   function handleExerciseNext(wasCorrect: boolean) {
     setScore((s) => s + (wasCorrect ? 1 : 0));
-    setStep((s) => s + 1);
+    setStep((s) => Math.min(s + 1, 4));
   }
 
   function handleRetry() {
