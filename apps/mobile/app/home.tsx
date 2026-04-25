@@ -1,15 +1,39 @@
-import { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { useState, useRef } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Animated, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { colors, fonts, radius, spacing } from "../theme/tokens";
 
 export default function HomeScreen() {
   const [showVoiceTip, setShowVoiceTip] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerAnim = useRef(new Animated.Value(-280)).current;
 
   function handleMicPress() {
     setShowVoiceTip(true);
     setTimeout(() => setShowVoiceTip(false), 2000);
+  }
+
+  function openDrawer() {
+    setDrawerOpen(true);
+    Animated.timing(drawerAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  function closeDrawer() {
+    Animated.timing(drawerAnim, {
+      toValue: -280,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setDrawerOpen(false));
+  }
+
+  function navigateTo(route: string) {
+    closeDrawer();
+    setTimeout(() => router.push(route as any), 220);
   }
 
   return (
@@ -28,20 +52,22 @@ export default function HomeScreen() {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: radius.pill,
-                backgroundColor: colors.ink,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ fontFamily: fonts.displayItalic, fontSize: 14, color: colors.cream }}>
-                C
-              </Text>
-            </View>
+            <TouchableOpacity onPress={openDrawer} activeOpacity={0.7}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: radius.pill,
+                  backgroundColor: colors.ink,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ fontFamily: fonts.displayItalic, fontSize: 14, color: colors.cream }}>
+                  C
+                </Text>
+              </View>
+            </TouchableOpacity>
             <Text style={{ fontFamily: fonts.display, fontSize: 17, color: colors.ink }}>
               Zdravo,{" "}
               <Text style={{ fontFamily: fonts.displayItalic, color: colors.accentWarm }}>
@@ -294,7 +320,6 @@ export default function HomeScreen() {
           </Text>
 
           <View style={{ position: "relative" }}>
-            {/* Voice tooltip */}
             {showVoiceTip && (
               <View
                 style={{
@@ -372,6 +397,122 @@ export default function HomeScreen() {
             Pitaj o gradivu iz knjige · Cvrčak odgovara
           </Text>
         </View>
+
+        {/* Drawer backdrop */}
+        {drawerOpen && (
+          <Pressable
+            onPress={closeDrawer}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0,0,0,0.4)",
+              zIndex: 20,
+            }}
+          />
+        )}
+
+        {/* Drawer panel */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: 260,
+            backgroundColor: colors.cream,
+            zIndex: 21,
+            transform: [{ translateX: drawerAnim }],
+            paddingTop: 56,
+            paddingHorizontal: 24,
+            shadowColor: "#000",
+            shadowOffset: { width: 4, height: 0 },
+            shadowOpacity: 0.12,
+            shadowRadius: 12,
+            elevation: 8,
+          }}
+        >
+          {/* Close button */}
+          <TouchableOpacity
+            onPress={closeDrawer}
+            activeOpacity={0.7}
+            style={{ position: "absolute", top: 20, right: 20, padding: 4 }}
+          >
+            <Text style={{ fontSize: 16, color: colors.ink3 }}>✕</Text>
+          </TouchableOpacity>
+
+          {/* User info */}
+          <Text style={{ fontFamily: fonts.display, fontSize: 24, color: colors.ink }}>
+            Marko
+          </Text>
+          <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2, marginBottom: 24 }}>
+            5. razred
+          </Text>
+
+          <View style={{ height: 1, backgroundColor: colors.line, marginBottom: 8 }} />
+
+          {/* Kviz */}
+          <TouchableOpacity
+            onPress={() => navigateTo("/kviz")}
+            activeOpacity={0.8}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 16,
+            }}
+          >
+            <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink }}>
+              Kviz
+            </Text>
+            <View
+              style={{
+                backgroundColor: colors.popLavender,
+                borderRadius: radius.pill,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+              }}
+            >
+              <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: colors.ink3 }}>
+                Uskoro
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <View style={{ height: 1, backgroundColor: colors.line2 }} />
+
+          {/* Roditelji */}
+          <TouchableOpacity
+            onPress={() => navigateTo("/roditelj")}
+            activeOpacity={0.8}
+            style={{ paddingVertical: 16 }}
+          >
+            <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink }}>
+              Roditelji
+            </Text>
+            <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 }}>
+              Pregled napretka djeteta
+            </Text>
+          </TouchableOpacity>
+
+          <View style={{ height: 1, backgroundColor: colors.line2 }} />
+
+          {/* Nastavnici */}
+          <TouchableOpacity
+            onPress={() => navigateTo("/nastavnik")}
+            activeOpacity={0.8}
+            style={{ paddingVertical: 16 }}
+          >
+            <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink }}>
+              Nastavnici
+            </Text>
+            <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 }}>
+              Upravljanje sadržajem
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
 
       </View>
     </SafeAreaView>
