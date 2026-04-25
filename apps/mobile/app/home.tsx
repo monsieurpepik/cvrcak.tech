@@ -329,6 +329,53 @@ export default function HomeScreen() {
               ))}
             </ScrollView>
 
+            {/* Matematika 2 visual card */}
+            <TouchableOpacity
+              onPress={() => router.push("/visual-chapter")}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: colors.cream3,
+                borderRadius: radius.card,
+                borderWidth: 1,
+                borderColor: colors.line,
+                padding: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 12,
+              }}
+            >
+              <View>
+                <Text
+                  style={{
+                    fontFamily: fonts.mono,
+                    fontSize: 10,
+                    color: colors.accentWarm,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 4,
+                  }}
+                >
+                  Matematika 2 · Poglavlje 1
+                </Text>
+                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink }}>
+                  Sabiranje do 20
+                </Text>
+              </View>
+              <View
+                style={{
+                  backgroundColor: colors.popLavender,
+                  borderRadius: radius.pill,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                }}
+              >
+                <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: colors.ink3 }}>
+                  Vizuelno
+                </Text>
+              </View>
+            </TouchableOpacity>
+
             {/* Coming-soon card */}
             <View
               style={{
@@ -341,6 +388,7 @@ export default function HomeScreen() {
                 alignItems: "center",
                 justifyContent: "space-between",
                 opacity: 0.6,
+                marginBottom: 12,
               }}
             >
               <View>
