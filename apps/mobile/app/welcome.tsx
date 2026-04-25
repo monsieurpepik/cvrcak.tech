@@ -86,7 +86,7 @@ export default function WelcomeScreen() {
 
           {/* CTA */}
           <TouchableOpacity
-            onPress={() => router.replace("/chapter")}
+            onPress={() => router.replace("/")}
             activeOpacity={0.85}
             style={{
               marginTop: 12,
