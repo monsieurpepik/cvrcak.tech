@@ -1,4 +1,5 @@
 // apps/mobile/components/ConceptCard.tsx
+import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { colors, fonts, radius } from "../theme/tokens";
 
@@ -36,20 +37,6 @@ export default function ConceptCard(props: ConceptCardProps) {
           padding: 20,
         }}
       >
-        {/* Subject label */}
-        <Text
-          style={{
-            fontFamily: fonts.mono,
-            fontSize: 10,
-            color: colors.popPeach,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            marginBottom: 4,
-          }}
-        >
-          {subjectLabel}
-        </Text>
-
         {/* Title */}
         <Text
           style={{
