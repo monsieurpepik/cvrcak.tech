@@ -1,11 +1,9 @@
 // apps/mobile/components/ConceptCard.tsx
-import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { colors, fonts, radius } from "../theme/tokens";
 
 type ConceptCardProps = {
   title: string;
-  subjectLabel: string;
   concreteEmoji: [string, string];
   dotsA: number;
   dotsB: number;
@@ -15,7 +13,7 @@ type ConceptCardProps = {
 };
 
 export default function ConceptCard(props: ConceptCardProps) {
-  const { title, subjectLabel, concreteEmoji, dotsA, dotsB, formula, audioUrl, onStart } = props;
+  const { title, concreteEmoji, dotsA, dotsB, formula, audioUrl, onStart } = props;
 
   // Parse formula: split on "=" to separate lhs from answer (last token)
   const formulaParts = formula.split("=");
@@ -85,6 +83,7 @@ export default function ConceptCard(props: ConceptCardProps) {
             borderRadius: 12,
             padding: 12,
             marginBottom: 10,
+            alignItems: "center",
           }}
         >
           <Text
@@ -115,7 +114,7 @@ export default function ConceptCard(props: ConceptCardProps) {
               style={{
                 fontFamily: fonts.mono,
                 fontSize: 14,
-                color: colors.muted,
+                color: colors.cream2,
                 marginHorizontal: 4,
               }}
             >
@@ -181,7 +180,7 @@ export default function ConceptCard(props: ConceptCardProps) {
       {/* Audio narration chip */}
       <TouchableOpacity
         disabled={audioUrl === null}
-        activeOpacity={0.7}
+        activeOpacity={audioUrl === null ? 1 : 0.7}
         style={{
           marginTop: 14,
           opacity: audioUrl === null ? 0.6 : 1,
