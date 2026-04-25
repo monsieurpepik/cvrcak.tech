@@ -19,6 +19,12 @@ import { supabase } from "../lib/supabase";
 type Citation = { page: number; excerpt: string };
 type QuickResponse = { answer: string; citations: Citation[] } | null;
 
+const SUGGESTED: string[] = [
+  "Kako se nađe NZN?",
+  "Zašto ne možemo samo sabirati brojnike?",
+  "Kako se sabira 1/2 i 1/3?",
+];
+
 export default function HomeScreen() {
   const [showVoiceTip, setShowVoiceTip] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -54,8 +60,8 @@ export default function HomeScreen() {
     setTimeout(() => router.push(route as any), 220);
   }
 
-  async function send() {
-    const text = input.trim();
+  async function send(question?: string) {
+    const text = (question ?? input).trim();
     if (!text || loading) return;
     setInput("");
     setLoading(true);
@@ -296,6 +302,33 @@ export default function HomeScreen() {
               </View>
             </TouchableOpacity>
 
+            {/* Suggested questions */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingBottom: 12 }}
+            >
+              {SUGGESTED.map((q) => (
+                <TouchableOpacity
+                  key={q}
+                  onPress={() => send(q)}
+                  activeOpacity={0.75}
+                  style={{
+                    backgroundColor: colors.cream,
+                    borderRadius: radius.pill,
+                    borderWidth: 1,
+                    borderColor: colors.line,
+                    paddingVertical: 8,
+                    paddingHorizontal: 14,
+                  }}
+                >
+                  <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink2 }}>
+                    {q}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
             {/* Coming-soon card */}
             <View
               style={{
@@ -495,12 +528,12 @@ export default function HomeScreen() {
                     color: colors.ink,
                   }}
                   returnKeyType="send"
-                  onSubmitEditing={send}
+                  onSubmitEditing={() => send()}
                   blurOnSubmit={false}
                   editable={!loading}
                 />
                 <TouchableOpacity
-                  onPress={input.trim() ? send : handleMicPress}
+                  onPress={input.trim() ? () => send() : handleMicPress}
                   activeOpacity={0.75}
                   style={{
                     width: 36,
