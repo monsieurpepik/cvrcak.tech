@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import { colors, fonts, radius } from "../theme/tokens";
+import { colors, fonts, radius, spacing } from "../theme/tokens";
 
 type RewardScreenProps = {
   correct: number;
@@ -18,13 +18,14 @@ export default function RewardScreen({
   onHome,
   onRetry,
 }: RewardScreenProps) {
+  const showRetry = correct < total;
   return (
     <View
       style={{
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 20,
+        paddingHorizontal: spacing.pagePadding,
       }}
     >
       {/* Trophy */}
@@ -99,7 +100,7 @@ export default function RewardScreen({
           paddingVertical: 14,
           alignItems: "center",
           width: "100%",
-          marginBottom: correct < total ? 12 : 0,
+          marginBottom: showRetry ? 12 : 0,
         }}
       >
         <Text
@@ -110,7 +111,7 @@ export default function RewardScreen({
       </TouchableOpacity>
 
       {/* Secondary CTA — only if not perfect score */}
-      {correct < total && (
+      {showRetry && (
         <TouchableOpacity
           onPress={onRetry}
           activeOpacity={0.85}
