@@ -11,6 +11,7 @@ type FractionVisualProps = {
 };
 
 export default function FractionVisual({ numerator, denominator }: FractionVisualProps) {
+  if (denominator <= 0) return null;
   const tiles = Array.from({ length: denominator }, (_, i) => i < numerator);
 
   return (
