@@ -54,7 +54,7 @@ function ChoiceButton({
         withTiming(0, { duration: 50 })
       );
     }
-  }, [state]);
+  }, [state, scale, shakeX]);
 
   const bgColor =
     state === "correct"
