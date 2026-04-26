@@ -16,17 +16,20 @@ serve(async (req) => {
 
   try {
     const { question } = await req.json();
-    if (!question || typeof question !== "string") {
+    if (!question || typeof question !== "string" || question.trim().length === 0 || question.length > 500) {
       return Response.json(
         { error: "question required" },
         { status: 400, headers: CORS_HEADERS }
       );
     }
 
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!apiKey) throw new Error("ANTHROPIC_API_KEY secret is not set");
+
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "x-api-key": Deno.env.get("ANTHROPIC_API_KEY")!,
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
@@ -41,6 +44,9 @@ serve(async (req) => {
     const claudeData = await claudeRes.json();
     if (!claudeRes.ok || !claudeData.content) {
       throw new Error(`Claude failed: ${JSON.stringify(claudeData)}`);
+    }
+    if (!Array.isArray(claudeData.content) || claudeData.content.length === 0) {
+      throw new Error(`Claude returned empty content: ${JSON.stringify(claudeData)}`);
     }
 
     const answer: string = claudeData.content[0].text;
