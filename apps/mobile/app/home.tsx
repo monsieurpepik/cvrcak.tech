@@ -354,6 +354,83 @@ export default function HomeScreen() {
               ))}
             </ScrollView>
 
+            {/* Matematika s Cvrčakom buddy card */}
+            <TouchableOpacity
+              onPress={() => router.push("/buddy")}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: "#FFF0EB",
+                borderRadius: radius.hero,
+                padding: 20,
+                marginBottom: 12,
+                borderWidth: 2,
+                borderColor: "rgba(255,107,53,0.2)",
+                shadowColor: "#FF6B35",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 10,
+                elevation: 2,
+              }}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                <Text
+                  style={{
+                    fontFamily: fonts.mono,
+                    fontSize: 10,
+                    color: "#FF6B35",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                  }}
+                >
+                  Matematika 2 · Razlomci
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: "#FF6B35",
+                    borderRadius: radius.pill,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text style={{ fontFamily: fonts.monoMedium, fontSize: 9, color: colors.cream, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Novo
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={{ fontSize: 32, marginBottom: 8 }}>🍎</Text>
+
+              <Text
+                style={{
+                  fontFamily: fonts.display,
+                  fontSize: 19,
+                  color: colors.ink,
+                  lineHeight: 26,
+                  marginBottom: 12,
+                }}
+              >
+                Matematika s Cvrčakom
+              </Text>
+
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View
+                  style={{
+                    backgroundColor: "rgba(255,107,53,0.12)",
+                    borderRadius: radius.pill,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: "#FF6B35" }}>
+                    Konverzacija + Vjezbanka
+                  </Text>
+                </View>
+                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.ink }}>
+                  Počni →
+                </Text>
+              </View>
+            </TouchableOpacity>
+
             {/* Matematika 2 visual card */}
             <TouchableOpacity
               onPress={() => router.push("/visual-chapter")}
