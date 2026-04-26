@@ -3,10 +3,10 @@ import { colors, fonts } from "../theme/tokens";
 
 const CHAPTERS = [
   { label: "Uvod",      startSeconds: 0 },
-  { label: "Osnove",    startSeconds: 90 },
-  { label: "Primjer 1", startSeconds: 195 },
-  { label: "Primjer 2", startSeconds: 340 },
-  { label: "Sažetak",   startSeconds: 430 },
+  { label: "Osnove",    startSeconds: 38 },
+  { label: "Primjer 1", startSeconds: 127 },
+  { label: "Primjer 2", startSeconds: 203 },
+  { label: "Sažetak",   startSeconds: 305 },
 ];
 
 type ChapterMarkersProps = {

@@ -1,3 +1,4 @@
+// Scope: v1 — out of Slice 1
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -95,7 +96,7 @@ export default function RoditeljScreen() {
             style={{
               fontFamily: fonts.mono,
               fontSize: 10,
-              color: colors.accentWarm,
+              color: colors.accentTeal,
               textTransform: "uppercase",
               letterSpacing: 1,
             }}
@@ -362,7 +363,7 @@ export default function RoditeljScreen() {
                 style={{
                   height: 6,
                   width: "67%",
-                  backgroundColor: colors.accentWarm,
+                  backgroundColor: colors.accentTeal,
                   borderRadius: 6,
                 }}
               />

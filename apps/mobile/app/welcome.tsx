@@ -64,7 +64,7 @@ export default function WelcomeScreen() {
               <Text
                 style={{
                   fontFamily: fonts.displayItalic,
-                  color: colors.accentWarm,
+                  color: colors.accentTeal,
                 }}
               >
                 Cvrčak

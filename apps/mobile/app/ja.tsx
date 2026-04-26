@@ -202,7 +202,7 @@ export default function JaScreen() {
               </Text>
             </View>
             <View style={{ height: 4, backgroundColor: colors.line2, borderRadius: 4 }}>
-              <View style={{ height: 4, width: "67%", backgroundColor: colors.accentWarm, borderRadius: 4 }} />
+              <View style={{ height: 4, width: "67%", backgroundColor: colors.accentTeal, borderRadius: 4 }} />
             </View>
             <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted }}>
               Poglavlje 4 od 6 završeno

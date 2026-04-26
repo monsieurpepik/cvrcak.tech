@@ -1,3 +1,4 @@
+// Scope: v1 — out of Slice 1
 import { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -203,7 +204,7 @@ export default function KvizScreen() {
             style={{
               height: 4,
               width: `${((current + (phase === "answered" ? 1 : 0)) / total) * 100}%`,
-              backgroundColor: colors.accentWarm,
+              backgroundColor: colors.accentTeal,
               borderRadius: 4,
             }}
           />
@@ -214,7 +215,7 @@ export default function KvizScreen() {
           style={{
             fontFamily: fonts.mono,
             fontSize: 11,
-            color: colors.accentWarm,
+            color: colors.accentTeal,
             textTransform: "uppercase",
             letterSpacing: 0.8,
           }}
@@ -241,9 +242,9 @@ export default function KvizScreen() {
             const isCorrect = i === q.correct;
             const showFeedback = phase === "answered";
 
-            let bg = colors.cream;
-            let border = colors.line;
-            let textColor = colors.ink;
+            let bg: string = colors.cream;
+            let border: string = colors.line;
+            let textColor: string = colors.ink;
 
             if (showFeedback && isCorrect) {
               bg = "#E8F5E4";

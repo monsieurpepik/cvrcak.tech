@@ -123,7 +123,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <Text style={{ fontFamily: fonts.display, fontSize: 17, color: colors.ink }}>
                 Zdravo,{" "}
-                <Text style={{ fontFamily: fonts.displayItalic, color: colors.accentWarm }}>
+                <Text style={{ fontFamily: fonts.displayItalic, color: colors.accentTeal }}>
                   Marko
                 </Text>
               </Text>
@@ -134,10 +134,15 @@ export default function HomeScreen() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 4,
-                backgroundColor: colors.popPeach,
+                backgroundColor: colors.popTeal,
                 borderRadius: radius.pill,
                 paddingVertical: 5,
                 paddingHorizontal: 10,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                elevation: 1,
               }}
             >
               <Text style={{ fontSize: 12 }}>🔥</Text>
@@ -156,18 +161,18 @@ export default function HomeScreen() {
             }}
             showsVerticalScrollIndicator={false}
           >
-            <Text
-              style={{
-                fontFamily: fonts.mono,
-                fontSize: 11,
-                color: colors.ink3,
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-                marginBottom: 12,
-              }}
-            >
-              Lekcije
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <Text
+                style={{
+                  fontFamily: fonts.display,
+                  fontSize: 15,
+                  color: colors.ink,
+                }}
+              >
+                Lekcije
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
+            </View>
 
             {/* Active episode card */}
             <TouchableOpacity
@@ -178,8 +183,30 @@ export default function HomeScreen() {
                 borderRadius: radius.hero,
                 padding: 20,
                 marginBottom: 12,
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.08)",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.18,
+                shadowRadius: 16,
+                elevation: 4,
+                overflow: "hidden",
               }}
             >
+              {/* Top highlight overlay */}
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 60,
+                  backgroundColor: "rgba(255,255,255,0.04)",
+                  borderTopLeftRadius: radius.hero,
+                  borderTopRightRadius: radius.hero,
+                  pointerEvents: "none",
+                }}
+              />
               {/* Speaker chips */}
               <View style={{ flexDirection: "row", gap: 6, marginBottom: 14 }}>
                 <View
@@ -250,7 +277,7 @@ export default function HomeScreen() {
                 style={{
                   fontFamily: fonts.mono,
                   fontSize: 10,
-                  color: colors.accentWarm,
+                  color: colors.accentTeal,
                   textTransform: "uppercase",
                   letterSpacing: 1,
                   marginBottom: 6,
@@ -314,15 +341,13 @@ export default function HomeScreen() {
                   onPress={() => send(q)}
                   activeOpacity={0.75}
                   style={{
-                    backgroundColor: colors.cream,
+                    backgroundColor: colors.popPeach,
                     borderRadius: radius.pill,
-                    borderWidth: 1,
-                    borderColor: colors.line,
-                    paddingVertical: 8,
+                    paddingVertical: 9,
                     paddingHorizontal: 14,
                   }}
                 >
-                  <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink2 }}>
+                  <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.ink }}>
                     {q}
                   </Text>
                 </TouchableOpacity>
@@ -334,44 +359,67 @@ export default function HomeScreen() {
               onPress={() => router.push("/visual-chapter")}
               activeOpacity={0.85}
               style={{
-                backgroundColor: colors.cream3,
-                borderRadius: radius.card,
-                borderWidth: 1,
-                borderColor: colors.line,
-                padding: spacing.cardPadding,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
+                backgroundColor: colors.popLavender,
+                borderRadius: radius.hero,
+                padding: 20,
                 marginBottom: 12,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 10,
+                elevation: 2,
               }}
             >
-              <View>
+              {/* Subject label + CRA dots */}
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                 <Text
                   style={{
                     fontFamily: fonts.mono,
                     fontSize: 10,
-                    color: colors.accentWarm,
+                    color: colors.accentTeal,
                     textTransform: "uppercase",
                     letterSpacing: 1,
-                    marginBottom: 4,
                   }}
                 >
                   Matematika 2 · Poglavlje 1
                 </Text>
-                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink }}>
-                  Sabiranje do 20
-                </Text>
+                {/* Three dots: Concrete (peach) → Representational (purple) → Abstract (ink) */}
+                <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }}>
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.popPeach }} />
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.popLavender }} />
+                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.ink }} />
+                </View>
               </View>
-              <View
+
+              {/* Title */}
+              <Text
                 style={{
-                  backgroundColor: colors.popLavender,
-                  borderRadius: radius.pill,
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
+                  fontFamily: fonts.display,
+                  fontSize: 19,
+                  color: colors.ink,
+                  lineHeight: 26,
+                  marginBottom: 14,
                 }}
               >
-                <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: colors.ink3 }}>
-                  Vizuelno
+                Sabiranje do 20
+              </Text>
+
+              {/* Badge + CTA */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.55)",
+                    borderRadius: radius.pill,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: colors.ink3 }}>
+                    Vizuelno
+                  </Text>
+                </View>
+                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.ink }}>
+                  Počni →
                 </Text>
               </View>
             </TouchableOpacity>
@@ -379,15 +427,14 @@ export default function HomeScreen() {
             {/* Coming-soon card */}
             <View
               style={{
-                backgroundColor: colors.cream3,
                 borderRadius: radius.card,
-                borderWidth: 1,
+                borderWidth: 1.5,
                 borderColor: colors.line,
+                borderStyle: "dashed",
                 padding: spacing.cardPadding,
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                opacity: 0.6,
                 marginBottom: 12,
               }}
             >
@@ -396,7 +443,7 @@ export default function HomeScreen() {
                   style={{
                     fontFamily: fonts.mono,
                     fontSize: 10,
-                    color: colors.accentWarm,
+                    color: colors.muted,
                     textTransform: "uppercase",
                     letterSpacing: 1,
                     marginBottom: 4,
@@ -404,22 +451,13 @@ export default function HomeScreen() {
                 >
                   Matematika 5 · Poglavlje 5
                 </Text>
-                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink }}>
+                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.muted }}>
                   Množenje razlomaka
                 </Text>
               </View>
-              <View
-                style={{
-                  backgroundColor: colors.popLavender,
-                  borderRadius: radius.pill,
-                  paddingHorizontal: 10,
-                  paddingVertical: 4,
-                }}
-              >
-                <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: colors.ink3 }}>
-                  Uskoro
-                </Text>
-              </View>
+              <Text style={{ fontFamily: fonts.mono, fontSize: 11, color: colors.muted }}>
+                uskoro
+              </Text>
             </View>
           </ScrollView>
 
@@ -434,18 +472,12 @@ export default function HomeScreen() {
               backgroundColor: colors.cream2,
             }}
           >
-            <Text
-              style={{
-                fontFamily: fonts.mono,
-                fontSize: 11,
-                color: colors.ink3,
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-                marginBottom: 10,
-              }}
-            >
-              Pitaj pitanje
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <Text style={{ fontFamily: fonts.display, fontSize: 15, color: colors.ink }}>
+                Pitaj pitanje
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: colors.line }} />
+            </View>
 
             {/* Inline response card */}
             {quickResponse && (
@@ -504,7 +536,7 @@ export default function HomeScreen() {
                   style={{ marginTop: 10 }}
                   activeOpacity={0.7}
                 >
-                  <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.accentWarm }}>
+                  <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.accentTeal }}>
                     Nastavi razgovor →
                   </Text>
                 </TouchableOpacity>
@@ -640,7 +672,7 @@ export default function HomeScreen() {
             left: 0,
             bottom: 0,
             width: 260,
-            backgroundColor: colors.cream,
+            backgroundColor: colors.cream2,
             zIndex: 21,
             transform: [{ translateX: drawerAnim }],
             paddingTop: 56,
@@ -661,74 +693,88 @@ export default function HomeScreen() {
             <Text style={{ fontSize: 16, color: colors.ink3 }}>✕</Text>
           </TouchableOpacity>
 
-          {/* User info */}
-          <Text style={{ fontFamily: fonts.display, fontSize: 24, color: colors.ink }}>
-            Marko
-          </Text>
-          <Text style={{ fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2, marginBottom: 24 }}>
-            5. razred
-          </Text>
-
-          <View style={{ height: 1, backgroundColor: colors.line, marginBottom: 8 }} />
-
-          {/* Kviz */}
-          <TouchableOpacity
-            onPress={() => navigateTo("/kviz")}
-            activeOpacity={0.8}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingVertical: 16,
-            }}
-          >
-            <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink }}>
-              Kviz
-            </Text>
+          {/* Avatar + user info */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 32 }}>
             <View
               style={{
-                backgroundColor: colors.popLavender,
-                borderRadius: radius.pill,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: colors.ink,
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              <Text style={{ fontFamily: fonts.monoMedium, fontSize: 10, color: colors.ink3 }}>
-                Uskoro
-              </Text>
+              <Text style={{ fontFamily: fonts.displayItalic, fontSize: 24, color: colors.cream }}>M</Text>
             </View>
-          </TouchableOpacity>
+            <View>
+              <Text style={{ fontFamily: fonts.display, fontSize: 22, color: colors.ink }}>Marko</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+                <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted }}>5. razred</Text>
+                <View
+                  style={{
+                    backgroundColor: colors.popPeach,
+                    borderRadius: radius.pill,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 3,
+                  }}
+                >
+                  <Text style={{ fontSize: 10 }}>🔥</Text>
+                  <Text style={{ fontFamily: fonts.monoMedium, fontSize: 11, color: colors.ink }}>12</Text>
+                </View>
+              </View>
+            </View>
+          </View>
 
-          <View style={{ height: 1, backgroundColor: colors.line2 }} />
+          <View style={{ height: 1, backgroundColor: colors.line, marginBottom: 4 }} />
 
           {/* Roditelji */}
           <TouchableOpacity
             onPress={() => navigateTo("/roditelj")}
             activeOpacity={0.8}
-            style={{ paddingVertical: 16 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 18,
+            }}
           >
-            <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink }}>
-              Roditelji
-            </Text>
-            <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 }}>
-              Pregled napretka djeteta
-            </Text>
+            <View>
+              <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink }}>
+                Roditelji
+              </Text>
+              <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 }}>
+                Pregled napretka djeteta
+              </Text>
+            </View>
+            <Text style={{ fontSize: 18, color: colors.ink3 }}>›</Text>
           </TouchableOpacity>
 
-          <View style={{ height: 1, backgroundColor: colors.line2 }} />
+          <View style={{ height: 1, backgroundColor: colors.line }} />
 
           {/* Nastavnici */}
           <TouchableOpacity
             onPress={() => navigateTo("/nastavnik")}
             activeOpacity={0.8}
-            style={{ paddingVertical: 16 }}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: 18,
+            }}
           >
-            <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink }}>
-              Nastavnici
-            </Text>
-            <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 }}>
-              Upravljanje sadržajem
-            </Text>
+            <View>
+              <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.ink }}>
+                Nastavnici
+              </Text>
+              <Text style={{ fontFamily: fonts.body, fontSize: 12, color: colors.muted, marginTop: 2 }}>
+                Upravljanje sadržajem
+              </Text>
+            </View>
+            <Text style={{ fontSize: 18, color: colors.ink3 }}>›</Text>
           </TouchableOpacity>
         </Animated.View>
 

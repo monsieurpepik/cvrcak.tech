@@ -1,3 +1,4 @@
+// Scope: v1 — out of Slice 1
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -62,7 +63,7 @@ export default function NastavnikScreen() {
             style={{
               fontFamily: fonts.mono,
               fontSize: 10,
-              color: colors.accentWarm,
+              color: colors.accentTeal,
               textTransform: "uppercase",
               letterSpacing: 1,
             }}
@@ -207,7 +208,7 @@ export default function NastavnikScreen() {
             >
               Ucenici
             </Text>
-            <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.accentWarm }}>
+            <Text style={{ fontFamily: fonts.bodyMedium, fontSize: 13, color: colors.accentTeal }}>
               Svi ({STUDENTS.length})
             </Text>
           </View>
@@ -305,7 +306,7 @@ export default function NastavnikScreen() {
                     style={{
                       height: 3,
                       width: `${student.progress * 100}%`,
-                      backgroundColor: student.struggling ? colors.warning : colors.accentWarm,
+                      backgroundColor: student.struggling ? colors.warning : colors.accentTeal,
                       borderRadius: 3,
                     }}
                   />

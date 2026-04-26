@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { TouchableOpacity, Text, Modal, View, Pressable, ScrollView } from "react-native";
+import * as Haptics from "expo-haptics";
+import { usePostHog } from "posthog-react-native";
 import { colors, fonts, radius } from "../theme/tokens";
 
 type CitationChipProps = {
@@ -9,11 +11,16 @@ type CitationChipProps = {
 
 export default function CitationChip({ page, excerpt }: CitationChipProps) {
   const [visible, setVisible] = useState(false);
+  const posthog = usePostHog();
 
   return (
     <>
       <TouchableOpacity
-        onPress={() => setVisible(true)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          posthog?.capture("citation_tapped", { page_number: page });
+          setVisible(true);
+        }}
         activeOpacity={0.7}
         style={{
           alignSelf: "flex-start",
@@ -25,10 +32,10 @@ export default function CitationChip({ page, excerpt }: CitationChipProps) {
           borderRadius: radius.pill,
           backgroundColor: colors.popPeach,
           borderWidth: 1,
-          borderColor: colors.accentWarm + "40",
+          borderColor: colors.accentTeal + "40",
         }}
       >
-        <Text style={{ fontFamily: fonts.mono, fontSize: 11, color: colors.accentWarm }}>
+        <Text style={{ fontFamily: fonts.mono, fontSize: 11, color: colors.accentTeal }}>
           str. {page}
         </Text>
       </TouchableOpacity>
@@ -36,7 +43,7 @@ export default function CitationChip({ page, excerpt }: CitationChipProps) {
       <Modal
         visible={visible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setVisible(false)}
       >
         <Pressable
@@ -57,7 +64,7 @@ export default function CitationChip({ page, excerpt }: CitationChipProps) {
               <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 14, color: colors.ink }}>
                 Iz udžbenika
               </Text>
-              <Text style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.accentWarm }}>
+              <Text style={{ fontFamily: fonts.mono, fontSize: 12, color: colors.accentTeal }}>
                 str. {page}
               </Text>
             </View>

@@ -25,7 +25,7 @@ export default function Waveform({ progress }: WaveformProps) {
               height,
               borderRadius: 3,
               backgroundColor: isActive
-                ? colors.accentWarm
+                ? colors.accentTeal
                 : isPlayed
                 ? colors.ink
                 : colors.line,

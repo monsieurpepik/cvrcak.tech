@@ -1,0 +1,22 @@
+[
+  {
+    "label": "Uvod",
+    "timestamp_seconds": 0
+  },
+  {
+    "label": "Osnove",
+    "timestamp_seconds": 80
+  },
+  {
+    "label": "Primjer 1",
+    "timestamp_seconds": 190
+  },
+  {
+    "label": "Primjer 2",
+    "timestamp_seconds": 320
+  },
+  {
+    "label": "Sažetak",
+    "timestamp_seconds": 430
+  }
+]

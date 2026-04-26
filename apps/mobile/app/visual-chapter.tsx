@@ -45,7 +45,7 @@ const LESSON = {
 // Step 4 (reward) hides the header entirely so segment 4 is never rendered.
 function segmentColor(segIndex: number, currentStep: number): string {
   if (segIndex < currentStep) return colors.success;
-  if (segIndex === currentStep) return colors.accentWarm;
+  if (segIndex === currentStep) return colors.accentTeal;
   return colors.line;
 }
 

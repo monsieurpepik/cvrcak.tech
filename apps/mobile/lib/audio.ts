@@ -13,7 +13,13 @@ try {
 
 export async function setupPlayer() {
   if (!TrackPlayer) return;
-  await TrackPlayer.setupPlayer();
+  try {
+    await TrackPlayer.setupPlayer();
+  } catch (e: any) {
+    // Already initialized (e.g. Fast Refresh) — safe to continue
+    if (!e?.message?.includes("already been initialized")) throw e;
+    return;
+  }
   await TrackPlayer.updateOptions({
     android: {
       appKilledPlaybackBehavior: AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
@@ -32,7 +38,7 @@ type Episode = {
   title: string;
   artist: string;
   url: string;
-  artwork?: string;
+  artwork?: string | number;
 };
 
 export async function loadEpisode(episode: Episode) {

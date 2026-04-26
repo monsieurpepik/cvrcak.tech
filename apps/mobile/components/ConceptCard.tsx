@@ -226,7 +226,7 @@ export default function ConceptCard(props: ConceptCardProps) {
           style={{
             fontFamily: fonts.mono,
             fontSize: 10,
-            color: colors.accentWarm,
+            color: colors.accentTeal,
           }}
         >
           ~30s

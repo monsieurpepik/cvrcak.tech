@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FDF6E8"
     },
     "ios": {
       "supportsTablet": false,
@@ -23,7 +23,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.cvrcak.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -31,11 +32,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "@sentry/react-native"
     ],
     "extra": {
       "supabaseUrl": "https://bmfbibwphuocdevhbypm.supabase.co",
-      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtZmJpYndwaHVvY2RldmhieXBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTU0NDEsImV4cCI6MjA5MjUzMTQ0MX0.XU_il17dWSLLkn7Wsd7fcGV1bR_FO-SjlKmmIHh25eQ"
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtZmJpYndwaHVvY2RldmhieXBtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTU0NDEsImV4cCI6MjA5MjUzMTQ0MX0.XU_il17dWSLLkn7Wsd7fcGV1bR_FO-SjlKmmIHh25eQ",
+      "sentryDsn": "",
+      "posthogApiKey": ""
     }
   }
 }

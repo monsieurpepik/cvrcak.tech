@@ -70,8 +70,8 @@ export default function ChatBubble({ role, text, citations }: ChatBubbleProps) {
 
         {!isKid && citations && citations.length > 0 && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, paddingLeft: 2 }}>
-            {citations.map((c) => (
-              <CitationChip key={c.page} page={c.page} excerpt={c.excerpt} />
+            {citations.map((c, i) => (
+              <CitationChip key={`${c.page}-${i}`} page={c.page} excerpt={c.excerpt} />
             ))}
           </View>
         )}
