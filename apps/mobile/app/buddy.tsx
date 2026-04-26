@@ -358,6 +358,7 @@ export default function BuddyScreen() {
             {/* Quiz mode: tap choices OR next button */}
             {phase === "quiz" && !showFeedback && (
               <TapChoices
+                key={currentExercise.id}
                 choices={currentExercise.choices}
                 onResult={handleQuizResult}
               />
