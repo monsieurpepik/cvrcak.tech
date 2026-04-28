@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import Animated, {
   useSharedValue,
@@ -113,12 +113,15 @@ function ChoiceButton({
 
 export default function TapChoices({ choices, onResult }: TapChoicesProps) {
   const [tappedIndex, setTappedIndex] = useState<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   function handleTap(index: number) {
     if (tappedIndex !== null) return;
     setTappedIndex(index);
     const wasCorrect = choices[index].correct;
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       onResult(wasCorrect);
     }, 900);
   }

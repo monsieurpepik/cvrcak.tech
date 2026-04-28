@@ -409,8 +409,20 @@ export default function BuddyScreen() {
     }
   }, [phase, exerciseIndex]);
 
+  // Cleanup recording resources on unmount
+  useEffect(() => {
+    return () => {
+      if (maxRecordingTimer.current) clearTimeout(maxRecordingTimer.current);
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+      }
+    };
+  }, []);
+
   // ── Voice recording ───────────────────────────────────────
   async function startRecording() {
+    if (recordingRef.current) return;
     try {
       await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
@@ -432,12 +444,12 @@ export default function BuddyScreen() {
   async function stopAndSend() {
     if (maxRecordingTimer.current) clearTimeout(maxRecordingTimer.current);
     const recording = recordingRef.current;
+    recordingRef.current = null;  // claim immediately before first await
     if (!recording) return;
 
     const elapsed = Date.now() - recordingStartRef.current;
     if (elapsed < 400) {
       try { await recording.stopAndUnloadAsync(); } catch {}
-      recordingRef.current = null;
       setMicState("idle");
       setAppleState("idle");
       return;
@@ -451,7 +463,6 @@ export default function BuddyScreen() {
     try {
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
-      recordingRef.current = null;
       if (!uri) throw new Error("no uri");
 
       const base64 = await FileSystem.readAsStringAsync(uri, {

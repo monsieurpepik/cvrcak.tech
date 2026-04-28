@@ -54,6 +54,7 @@ serve(async (req) => {
         "audio/ogg": "ogg",
         "audio/wav": "wav",
         "audio/x-m4a": "m4a",
+        "audio/m4a": "m4a",
       };
       const ext = mimeToExt[body.audio_mime as string] ?? "webm";
       const filename = `audio.${ext}`;
