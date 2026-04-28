@@ -168,6 +168,61 @@ function useKaraoke() {
   return { displayedWords, totalWords, play };
 }
 
+// ── RippleRing component ──────────────────────────────────────
+function RippleRing({ delay, size }: { delay: number; size: number }) {
+  const scale = useRef(new Animated.Value(0.9)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.parallel([
+          Animated.timing(scale, {
+            toValue: 1.7,
+            duration: 1400,
+            useNativeDriver: true,
+          }),
+          Animated.sequence([
+            Animated.timing(opacity, {
+              toValue: 0.7,
+              duration: 50,
+              useNativeDriver: true,
+            }),
+            Animated.timing(opacity, {
+              toValue: 0,
+              duration: 1350,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+        Animated.parallel([
+          Animated.timing(scale, { toValue: 0.9, duration: 0, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
+  const half = size / 2;
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        width: size,
+        height: size,
+        borderRadius: half,
+        borderWidth: 2,
+        borderColor: "rgba(255,107,53,0.55)",
+        opacity,
+        transform: [{ scale }],
+      }}
+    />
+  );
+}
+
 // ── DriftWord component ───────────────────────────────────────
 function DriftWord({ word, left, delay }: { word: string; left: string; delay: number }) {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -222,6 +277,11 @@ export default function BuddyScreen() {
   const recordingStartRef = useRef<number>(0);
   const maxRecordingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Fix 6: bouncing dots animated values
+  const dotBounce0 = useRef(new Animated.Value(0)).current;
+  const dotBounce1 = useRef(new Animated.Value(0)).current;
+  const dotBounce2 = useRef(new Animated.Value(0)).current;
+
   const { displayedWords, totalWords, play } = useKaraoke();
 
   // ConceptCard slide-up animation
@@ -230,20 +290,31 @@ export default function BuddyScreen() {
 
   // Apple Reanimated shared values
   const bobY = useSharedValue(0);
+  const shakeX = useSharedValue(0);
   const tiltRotate = useSharedValue(0);
   const pulseScale = useSharedValue(1);
 
   // Apple animation based on appleState
   useEffect(() => {
     bobY.value = 0;
+    shakeX.value = 0;
     tiltRotate.value = 0;
     pulseScale.value = 1;
 
     if (appleState === "idle" || appleState === "listening") {
+      // Fix 2: bob includes rotate(3deg) oscillation in sync with translateY
       bobY.value = withRepeat(
         withSequence(
           withTiming(-6, { duration: 900, easing: Easing.inOut(Easing.sin) }),
           withTiming(0, { duration: 900, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        false
+      );
+      tiltRotate.value = withRepeat(
+        withSequence(
+          withTiming(3, { duration: 900 }),
+          withTiming(0, { duration: 900 })
         ),
         -1,
         false
@@ -267,19 +338,27 @@ export default function BuddyScreen() {
         false
       );
     } else if (appleState === "celebrate") {
+      // Fix 3: scale burst + rotate burst
       pulseScale.value = withSequence(
         withTiming(1.18, { duration: 100 }),
         withTiming(1.22, { duration: 100 }),
         withTiming(1.1, { duration: 250 }),
         withTiming(1, { duration: 250 })
       );
+      tiltRotate.value = withSequence(
+        withTiming(15, { duration: 100 }),
+        withTiming(-10, { duration: 100 }),
+        withTiming(5, { duration: 150 }),
+        withTiming(0, { duration: 350 })
+      );
     } else if (appleState === "wrong") {
-      bobY.value = withSequence(
+      // Fix 1: shake uses translateX not translateY
+      shakeX.value = withSequence(
         withTiming(-8, { duration: 50 }),
         withTiming(8, { duration: 50 }),
         withTiming(-6, { duration: 50 }),
         withTiming(6, { duration: 50 }),
-        withTiming(0, { duration: 100 })
+        withTiming(0, { duration: 50 })
       );
     }
   }, [appleState]);
@@ -287,6 +366,7 @@ export default function BuddyScreen() {
   const appleAnimStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: bobY.value },
+      { translateX: shakeX.value },
       { rotate: `${tiltRotate.value}deg` },
       { scale: pulseScale.value },
     ],
@@ -341,6 +421,8 @@ export default function BuddyScreen() {
       recordingStartRef.current = Date.now();
       setMicState("listening");
       setAppleState("listening");
+      // Fix 5: show listening karaoke text
+      play("Slušam te...");
       maxRecordingTimer.current = setTimeout(() => stopAndSend(), 15000);
     } catch (e) {
       console.warn("Could not start recording:", e);
@@ -363,6 +445,8 @@ export default function BuddyScreen() {
 
     setMicState("thinking");
     setAppleState("thinking");
+    // Fix 5: show thinking karaoke text before API call
+    play("Hmm, razmišljam...");
 
     try {
       await recording.stopAndUnloadAsync();
@@ -391,6 +475,39 @@ export default function BuddyScreen() {
       setLoading(false);
     }
   }
+
+  // Fix 6: animate thinking dots when in thinking state
+  useEffect(() => {
+    const makeBounce = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, { toValue: -8, duration: 350, useNativeDriver: true }),
+          Animated.timing(val, { toValue: 0, duration: 350, useNativeDriver: true }),
+        ])
+      );
+
+    if (micState === "thinking") {
+      const a0 = makeBounce(dotBounce0, 0);
+      const a1 = makeBounce(dotBounce1, 180);
+      const a2 = makeBounce(dotBounce2, 360);
+      a0.start();
+      a1.start();
+      a2.start();
+      return () => {
+        a0.stop();
+        a1.stop();
+        a2.stop();
+        dotBounce0.setValue(0);
+        dotBounce1.setValue(0);
+        dotBounce2.setValue(0);
+      };
+    } else {
+      dotBounce0.setValue(0);
+      dotBounce1.setValue(0);
+      dotBounce2.setValue(0);
+    }
+  }, [micState]);
 
   // When karaoke finishes speaking, return mic to idle
   useEffect(() => {
@@ -584,6 +701,13 @@ export default function BuddyScreen() {
             {(phase === "conversation" || phase === "greeting") && (
               <>
                 <View style={styles.micRow}>
+                  <View style={styles.micRippleWrapper}>
+                    {micState === "listening" && (
+                      <>
+                        <RippleRing delay={0} size={72} />
+                        <RippleRing delay={500} size={72} />
+                      </>
+                    )}
                   <Pressable
                     onPressIn={startRecording}
                     onPressOut={stopAndSend}
@@ -608,15 +732,16 @@ export default function BuddyScreen() {
                     )}
                     {micState === "thinking" && (
                       <View style={styles.thinkDots}>
-                        <View style={styles.dot} />
-                        <View style={styles.dot} />
-                        <View style={styles.dot} />
+                        <Animated.View style={[styles.dot, { transform: [{ translateY: dotBounce0 }] }]} />
+                        <Animated.View style={[styles.dot, { transform: [{ translateY: dotBounce1 }] }]} />
+                        <Animated.View style={[styles.dot, { transform: [{ translateY: dotBounce2 }] }]} />
                       </View>
                     )}
                     {micState === "speaking" && (
                       <Text style={{ fontSize: 26, opacity: 0.4 }}>🎤</Text>
                     )}
                   </Pressable>
+                  </View>
                   {micState === "idle" && (
                     <Text style={styles.micHint}>Pritisni i govori</Text>
                   )}
@@ -636,7 +761,11 @@ export default function BuddyScreen() {
                     onFocus={() => setPhase("conversation")}
                   />
                   {input.trim().length > 0 && (
-                    <TouchableOpacity onPress={sendQuestion} style={styles.sendBtn}>
+                    <TouchableOpacity
+                      onPress={sendQuestion}
+                      style={styles.sendBtn}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
                       <Text style={{ color: colors.cream, fontSize: 16 }}>↑</Text>
                     </TouchableOpacity>
                   )}
@@ -799,6 +928,12 @@ const styles = StyleSheet.create({
   micRow: {
     alignItems: "center",
     gap: 8,
+  },
+  micRippleWrapper: {
+    width: 72,
+    height: 72,
+    alignItems: "center",
+    justifyContent: "center",
   },
   micBtn: {
     width: 72,
