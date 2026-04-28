@@ -89,6 +89,12 @@ serve(async (req) => {
       }
 
       question = whisperData.text as string;
+      if (question.trim().length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Ništa nisam čuo. Pokušaj ponovo." }),
+          { status: 422, headers: CORS_HEADERS },
+        );
+      }
     } else if (body.question && typeof body.question === "string") {
       inputType = "text";
       question = body.question.trim();
@@ -156,7 +162,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 80,
+        max_tokens: 120,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: buildUserPrompt(question, chunks) }],
       }),
@@ -188,7 +194,7 @@ serve(async (req) => {
     const latencyMs = Date.now() - start;
 
     // 5. Log to buddy_ask_logs
-    await supabase.from("buddy_ask_logs").insert({
+    const { error: logError } = await supabase.from("buddy_ask_logs").insert({
       input_type: inputType,
       raw_question: question,
       retrieved_chunk_ids: chunkIds,
@@ -198,6 +204,7 @@ serve(async (req) => {
       latency_ms: latencyMs,
       model: "claude-sonnet-4-6",
     });
+    if (logError) console.warn("Failed to insert buddy_ask_log:", logError.message);
 
     return Response.json(
       { answer, ...(sourcePage !== null ? { source_page: sourcePage } : {}) },
