@@ -6,12 +6,13 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
-  ScrollView,
+  Animated,
+  StyleSheet,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import Animated, {
+import Reanimated, {
   useSharedValue,
   useAnimatedStyle,
   withRepeat,
@@ -19,21 +20,64 @@ import Animated, {
   withTiming,
   Easing,
 } from "react-native-reanimated";
+import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
+import {
+  useFonts,
+  Baloo2_700Bold,
+  Baloo2_800ExtraBold,
+} from "@expo-google-fonts/baloo-2";
 import { supabase } from "../lib/supabase";
 import { colors, fonts, radius, spacing } from "../theme/tokens";
 import TapChoices from "../components/TapChoices";
 import FractionVisual from "../components/FractionVisual";
 
-// Grades 1-4 subject colors (from sketch findings, separate from system.css tokens)
+// Grades 1-4 colors
 const MATH_ORANGE = "#FF6B35";
 const MATH_BG = "#FFF0EB";
 
-type Phase = "greeting" | "conversation" | "quiz" | "reward";
+// Claymorphism tokens — local to buddy.tsx only
+const CLAY_CARD_STYLES = {
+  borderWidth: 3,
+  borderColor: "rgba(0,0,0,0.08)",
+  borderRadius: 20,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.12,
+  shadowRadius: 0,
+  elevation: 3,
+} as const;
 
-type Exercise = {
-  id: number;
-  question: string;
-  visual: { numerator: number; denominator: number };
+const CLAY_BTN_STYLES = {
+  borderWidth: 3,
+  borderColor: "rgba(180,60,0,0.2)",
+  borderRadius: 100,
+  shadowColor: "rgba(180,60,0,1)",
+  shadowOffset: { width: 0, height: 5 },
+  shadowOpacity: 0.4,
+  shadowRadius: 0,
+  elevation: 4,
+} as const;
+
+// Drift words — static positions to avoid RN layout warnings
+const DRIFT_WORDS = [
+  { word: "razlomak",  left: "12%", delay: 0 },
+  { word: "sabiranje", left: "55%", delay: 800 },
+  { word: "nazivnik",  left: "30%", delay: 1600 },
+  { word: "četvrtina", left: "70%", delay: 400 },
+  { word: "polovica",  left: "15%", delay: 1200 },
+  { word: "cijeli",    left: "45%", delay: 2000 },
+] as const;
+
+type Phase = "greeting" | "conversation" | "quiz" | "reward";
+type MicState = "idle" | "listening" | "thinking" | "speaking";
+type AppleState = "idle" | "listening" | "thinking" | "speaking" | "celebrate" | "wrong";
+
+type DbExercise = {
+  id: string;
+  question_text: string;
+  visual_type: string;
+  visual_data: { numerator: number; denominator: number };
   choices: [
     { label: string; correct: boolean },
     { label: string; correct: boolean },
@@ -42,16 +86,16 @@ type Exercise = {
   ];
   feedback_correct: string;
   feedback_wrong: string;
+  sort_order: number;
 };
 
-const GREETING_TEXT =
-  "Bok! Ja sam Cvrčak. Danas učimo razlomke. Pitaj me šta hoćeš ili počni vježbati!";
-
-const EXERCISES: Exercise[] = [
+// Fallback exercises if DB fetch fails
+const FALLBACK_EXERCISES: DbExercise[] = [
   {
-    id: 1,
-    question: "Koliko je 1/2 + 1/4?",
-    visual: { numerator: 3, denominator: 4 },
+    id: "fallback-1",
+    question_text: "Koliko je 1/2 + 1/4?",
+    visual_type: "fractions",
+    visual_data: { numerator: 3, denominator: 4 },
     choices: [
       { label: "2/6", correct: false },
       { label: "3/4", correct: true },
@@ -60,11 +104,13 @@ const EXERCISES: Exercise[] = [
     ],
     feedback_correct: "Tačno! Tri četvrtine. Bravo!",
     feedback_wrong: "Nije to. Pogledaj krugiće ponovo.",
+    sort_order: 1,
   },
   {
-    id: 2,
-    question: "Koja slika pokazuje 2/3?",
-    visual: { numerator: 2, denominator: 3 },
+    id: "fallback-2",
+    question_text: "Koja slika pokazuje 2/3?",
+    visual_type: "fractions",
+    visual_data: { numerator: 2, denominator: 3 },
     choices: [
       { label: "1/3", correct: false },
       { label: "2/3", correct: true },
@@ -73,11 +119,13 @@ const EXERCISES: Exercise[] = [
     ],
     feedback_correct: "Odlično! Dva od tri dijela su popunjena.",
     feedback_wrong: "Pogledaj koliko je kvadratića popunjeno.",
+    sort_order: 2,
   },
   {
-    id: 3,
-    question: "Koliko je 3/4 - 1/4?",
-    visual: { numerator: 2, denominator: 4 },
+    id: "fallback-3",
+    question_text: "Koliko je 3/4 - 1/4?",
+    visual_type: "fractions",
+    visual_data: { numerator: 2, denominator: 4 },
     choices: [
       { label: "2/4", correct: true },
       { label: "4/4", correct: false },
@@ -86,109 +134,333 @@ const EXERCISES: Exercise[] = [
     ],
     feedback_correct: "Tačno! Dva od četiri dijela ostaju.",
     feedback_wrong: "Oduzmi jedan dio od tri dijela.",
+    sort_order: 3,
   },
 ];
 
+const GREETING_TEXT =
+  "Bok! Ja sam Cvrčak. Danas učimo razlomke. Pitaj me šta hoćeš ili počni vježbati!";
+
+// ── Karaoke hook ─────────────────────────────────────────────
 function useKaraoke() {
-  const [words, setWords] = useState<string[]>([]);
+  const [displayedWords, setDisplayedWords] = useState<string[]>([]);
+  const [totalWords, setTotalWords] = useState<string[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function play(text: string) {
     if (timerRef.current) clearInterval(timerRef.current);
-    setWords([]);
+    setDisplayedWords([]);
     const allWords = text.split(" ");
+    setTotalWords(allWords);
     let i = 0;
     timerRef.current = setInterval(() => {
       if (i >= allWords.length) {
         clearInterval(timerRef.current!);
         return;
       }
-      setWords((prev) => [...prev, allWords[i]]);
+      setDisplayedWords((prev) => [...prev, allWords[i]]);
       i++;
     }, 210);
   }
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
-  return { karaokeText: words.join(" "), play };
+  return { displayedWords, totalWords, play };
 }
 
+// ── DriftWord component ───────────────────────────────────────
+function DriftWord({ word, left, delay }: { word: string; left: string; delay: number }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.parallel([
+          Animated.timing(opacity, { toValue: 0.18, duration: 1200, useNativeDriver: true }),
+          Animated.timing(translateY, { toValue: -18, duration: 3000, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(opacity, { toValue: 0, duration: 1200, useNativeDriver: true }),
+          Animated.timing(translateY, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
+  return (
+    <Animated.Text
+      style={[
+        styles.driftWord,
+        { left: left as any, opacity, transform: [{ translateY }] },
+      ]}
+    >
+      {word}
+    </Animated.Text>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────
 export default function BuddyScreen() {
+  const [fontsLoaded] = useFonts({ Baloo2_700Bold, Baloo2_800ExtraBold });
+
   const [phase, setPhase] = useState<Phase>("greeting");
   const [exerciseIndex, setExerciseIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const { karaokeText, play } = useKaraoke();
+  const [micState, setMicState] = useState<MicState>("idle");
+  const [appleState, setAppleState] = useState<AppleState>("idle");
+  const [exercises, setExercises] = useState<DbExercise[]>([]);
+  const [exercisesLoading, setExercisesLoading] = useState(true);
 
-  // Apple bob animation
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recordingStartRef = useRef<number>(0);
+  const maxRecordingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { displayedWords, totalWords, play } = useKaraoke();
+
+  // ConceptCard slide-up animation
+  const conceptCardY = useRef(new Animated.Value(20)).current;
+  const conceptCardOpacity = useRef(new Animated.Value(0)).current;
+
+  // Apple Reanimated shared values
   const bobY = useSharedValue(0);
+  const tiltRotate = useSharedValue(0);
+  const pulseScale = useSharedValue(1);
+
+  // Apple animation based on appleState
   useEffect(() => {
-    bobY.value = withRepeat(
-      withSequence(
-        withTiming(-10, { duration: 900, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 900, easing: Easing.inOut(Easing.sin) })
-      ),
-      -1,
-      false
-    );
-  }, []);
-  const appleStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: bobY.value }],
+    bobY.value = 0;
+    tiltRotate.value = 0;
+    pulseScale.value = 1;
+
+    if (appleState === "idle" || appleState === "listening") {
+      bobY.value = withRepeat(
+        withSequence(
+          withTiming(-6, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: 900, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        false
+      );
+    } else if (appleState === "thinking") {
+      tiltRotate.value = withRepeat(
+        withSequence(
+          withTiming(-4, { duration: 600, easing: Easing.inOut(Easing.sin) }),
+          withTiming(4, { duration: 600, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        true
+      );
+    } else if (appleState === "speaking") {
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.09, { duration: 500, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 500, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        false
+      );
+    } else if (appleState === "celebrate") {
+      pulseScale.value = withSequence(
+        withTiming(1.18, { duration: 100 }),
+        withTiming(1.22, { duration: 100 }),
+        withTiming(1.1, { duration: 250 }),
+        withTiming(1, { duration: 250 })
+      );
+    } else if (appleState === "wrong") {
+      bobY.value = withSequence(
+        withTiming(-8, { duration: 50 }),
+        withTiming(8, { duration: 50 }),
+        withTiming(-6, { duration: 50 }),
+        withTiming(6, { duration: 50 }),
+        withTiming(0, { duration: 100 })
+      );
+    }
+  }, [appleState]);
+
+  const appleAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: bobY.value },
+      { rotate: `${tiltRotate.value}deg` },
+      { scale: pulseScale.value },
+    ],
   }));
+
+  // Fetch exercises from DB on mount
+  useEffect(() => {
+    async function fetchExercises() {
+      try {
+        const { data, error } = await supabase
+          .from("vjezbanka_exercises")
+          .select("*")
+          .eq("chapter_id", 4)
+          .order("sort_order");
+        if (error || !data || data.length === 0) throw error ?? new Error("empty");
+        setExercises(data as DbExercise[]);
+      } catch {
+        setExercises(FALLBACK_EXERCISES);
+      } finally {
+        setExercisesLoading(false);
+      }
+    }
+    fetchExercises();
+  }, []);
 
   // Start greeting karaoke on mount
   useEffect(() => {
     play(GREETING_TEXT);
   }, []);
 
-  async function sendQuestion() {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput("");
-    setLoading(true);
+  // Show concept card when quiz phase starts
+  useEffect(() => {
+    if (phase === "quiz") {
+      conceptCardY.setValue(20);
+      conceptCardOpacity.setValue(0);
+      Animated.parallel([
+        Animated.timing(conceptCardY, { toValue: 0, duration: 350, useNativeDriver: true }),
+        Animated.timing(conceptCardOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [phase, exerciseIndex]);
+
+  // ── Voice recording ───────────────────────────────────────
+  async function startRecording() {
     try {
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+      recordingStartRef.current = Date.now();
+      setMicState("listening");
+      setAppleState("listening");
+      maxRecordingTimer.current = setTimeout(() => stopAndSend(), 15000);
+    } catch (e) {
+      console.warn("Could not start recording:", e);
+    }
+  }
+
+  async function stopAndSend() {
+    if (maxRecordingTimer.current) clearTimeout(maxRecordingTimer.current);
+    const recording = recordingRef.current;
+    if (!recording) return;
+
+    const elapsed = Date.now() - recordingStartRef.current;
+    if (elapsed < 400) {
+      try { await recording.stopAndUnloadAsync(); } catch {}
+      recordingRef.current = null;
+      setMicState("idle");
+      setAppleState("idle");
+      return;
+    }
+
+    setMicState("thinking");
+    setAppleState("thinking");
+
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      recordingRef.current = null;
+      if (!uri) throw new Error("no uri");
+
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: "base64",
+      });
+
+      setLoading(true);
       const { data, error } = await supabase.functions.invoke("buddy-ask", {
-        body: { question: text },
+        body: { audio_base64: base64, audio_mime: "audio/m4a" },
       });
       if (error) throw error;
+
+      setMicState("speaking");
+      setAppleState("speaking");
       play(data.answer ?? "Pokušaj ponovo.");
     } catch {
       play("Nema interneta. Provjeri vezu.");
+      setMicState("idle");
+      setAppleState("idle");
     } finally {
       setLoading(false);
     }
   }
 
+  // When karaoke finishes speaking, return mic to idle
+  useEffect(() => {
+    if (
+      micState === "speaking" &&
+      displayedWords.length === totalWords.length &&
+      totalWords.length > 0
+    ) {
+      setMicState("idle");
+      setAppleState("idle");
+    }
+  }, [displayedWords, totalWords, micState]);
+
+  // ── Text question ─────────────────────────────────────────
+  async function sendQuestion() {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+    setLoading(true);
+    setAppleState("thinking");
+    try {
+      const { data, error } = await supabase.functions.invoke("buddy-ask", {
+        body: { question: text },
+      });
+      if (error) throw error;
+      setAppleState("speaking");
+      play(data.answer ?? "Pokušaj ponovo.");
+    } catch {
+      play("Nema interneta. Provjeri vezu.");
+      setAppleState("idle");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Quiz flow ─────────────────────────────────────────────
   function startQuiz() {
+    if (exercises.length === 0) return;
     setPhase("quiz");
     setExerciseIndex(0);
     setScore(0);
     setShowFeedback(false);
-    play(EXERCISES[0].question);
+    play(exercises[0].question_text);
   }
 
   function handleQuizResult(wasCorrect: boolean) {
     setScore((s) => s + (wasCorrect ? 1 : 0));
     setShowFeedback(true);
-    const ex = EXERCISES[exerciseIndex];
+    setAppleState(wasCorrect ? "celebrate" : "wrong");
+    const ex = exercises[exerciseIndex];
     play(wasCorrect ? ex.feedback_correct : ex.feedback_wrong);
   }
 
   function nextExercise() {
     const next = exerciseIndex + 1;
-    if (next >= EXERCISES.length) {
+    if (next >= exercises.length) {
       setPhase("reward");
+      setAppleState("celebrate");
       play("Završio si! Odlično si radio danas.");
     } else {
       setExerciseIndex(next);
       setShowFeedback(false);
-      play(EXERCISES[next].question);
+      setAppleState("idle");
+      play(exercises[next].question_text);
     }
   }
 
-  const currentExercise = EXERCISES[exerciseIndex];
+  const currentExercise = exercises[exerciseIndex];
+
+  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: MATH_BG }}>
@@ -197,166 +469,103 @@ export default function BuddyScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/* Header */}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: spacing.pagePadding,
-            paddingTop: 12,
-            paddingBottom: 8,
-          }}
-        >
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
             hitSlop={12}
-            style={{
-              backgroundColor: "rgba(0,0,0,0.06)",
-              borderRadius: radius.pill,
-              paddingHorizontal: 14,
-              paddingVertical: 7,
-            }}
+            style={styles.backBtn}
           >
             <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 13, color: colors.ink }}>
               Natrag
             </Text>
           </TouchableOpacity>
 
-          <Text
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: 11,
-              color: MATH_ORANGE,
-              textTransform: "uppercase",
-              letterSpacing: 1,
-            }}
-          >
-            Matematika · Razlomci
-          </Text>
+          <Text style={styles.subjectLabel}>Matematika · Razlomci</Text>
 
-          {phase === "quiz" && (
+          {phase === "quiz" && exercises.length > 0 && (
             <Text style={{ fontFamily: fonts.monoMedium, fontSize: 12, color: colors.ink3 }}>
-              {exerciseIndex + 1}/{EXERCISES.length}
+              {exerciseIndex + 1}/{exercises.length}
             </Text>
           )}
           {phase !== "quiz" && <View style={{ width: 60 }} />}
         </View>
 
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingHorizontal: spacing.pagePadding,
-            paddingBottom: 16,
-          }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Stage: apple character */}
-          <View style={{ alignItems: "center", paddingVertical: 24 }}>
-            <Animated.View style={appleStyle}>
+        {/* Stage */}
+        <View style={styles.stage}>
+          {DRIFT_WORDS.map((d) => (
+            <DriftWord key={d.word} word={d.word} left={d.left} delay={d.delay} />
+          ))}
+
+          <View style={styles.appleContainer}>
+            <Reanimated.View style={appleAnimStyle}>
               <Text style={{ fontSize: 72 }}>🍎</Text>
-            </Animated.View>
+            </Reanimated.View>
           </View>
 
-          {/* Karaoke text */}
-          <View
-            style={{
-              backgroundColor: colors.cream,
-              borderRadius: radius.hero,
-              borderWidth: 2,
-              borderColor: "rgba(0,0,0,0.06)",
-              padding: 18,
-              minHeight: 80,
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 20,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              elevation: 2,
-            }}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color={MATH_ORANGE} />
-            ) : (
-              <Text
-                style={{
-                  fontFamily: fonts.bodySemiBold,
-                  fontSize: 17,
-                  color: colors.ink,
-                  textAlign: "center",
-                  lineHeight: 26,
-                }}
-              >
-                {karaokeText || " "}
-              </Text>
-            )}
-          </View>
-
-          {/* Quiz: fraction visual */}
-          {phase === "quiz" && !showFeedback && (
-            <View style={{ alignItems: "center", marginBottom: 20 }}>
+          {phase === "quiz" && !showFeedback && currentExercise && (
+            <Animated.View
+              style={[
+                styles.conceptCard,
+                {
+                  opacity: conceptCardOpacity,
+                  transform: [{ translateY: conceptCardY }],
+                },
+              ]}
+            >
               <FractionVisual
-                numerator={currentExercise.visual.numerator}
-                denominator={currentExercise.visual.denominator}
+                numerator={currentExercise.visual_data.numerator}
+                denominator={currentExercise.visual_data.denominator}
               />
-            </View>
+            </Animated.View>
           )}
+        </View>
 
-          {/* Reward screen */}
-          {phase === "reward" && (
-            <View style={{ alignItems: "center", gap: 16, paddingTop: 8 }}>
-              <Text style={{ fontSize: 48 }}>🏆</Text>
-              <Text
-                style={{
-                  fontFamily: fonts.display,
-                  fontSize: 24,
-                  color: colors.ink,
-                  textAlign: "center",
-                }}
-              >
-                Sjajno si uradio!
-              </Text>
-              <Text
-                style={{
-                  fontFamily: fonts.monoMedium,
-                  fontSize: 16,
-                  color: MATH_ORANGE,
-                }}
-              >
-                {score}/{EXERCISES.length} tačno
-              </Text>
-              <TouchableOpacity
-                onPress={() => router.replace("/home")}
-                style={{
-                  backgroundColor: colors.ink,
-                  borderRadius: radius.pill,
-                  paddingVertical: 14,
-                  paddingHorizontal: 28,
-                  marginTop: 8,
-                }}
-              >
-                <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.cream }}>
-                  Idi kući
-                </Text>
-              </TouchableOpacity>
-            </View>
+        {/* Karaoke strip */}
+        <View style={styles.karaokeStrip}>
+          {exercisesLoading ? (
+            <Text style={styles.karaokeWord}>Učitavam vježbe...</Text>
+          ) : (
+            <Text style={styles.karaokeText}>
+              {displayedWords.map((word, i) => {
+                const isCurrent =
+                  i === displayedWords.length - 1 &&
+                  displayedWords.length < totalWords.length;
+                return (
+                  <Text
+                    key={i}
+                    style={[styles.karaokeWord, isCurrent && styles.karaokeWordCurrent]}
+                  >
+                    {word}{" "}
+                  </Text>
+                );
+              })}
+            </Text>
           )}
-        </ScrollView>
+        </View>
+
+        {/* Reward screen */}
+        {phase === "reward" && (
+          <View style={styles.rewardContainer}>
+            <Text style={{ fontSize: 48 }}>🏆</Text>
+            <Text style={styles.rewardTitle}>Sjajno si uradio!</Text>
+            <Text style={styles.rewardScore}>
+              {score}/{exercises.length} tačno
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.replace("/home")}
+              style={styles.rewardBtn}
+            >
+              <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.cream }}>
+                Idi kući
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Input area: pinned bottom */}
         {phase !== "reward" && (
-          <View
-            style={{
-              paddingHorizontal: spacing.pagePadding,
-              paddingBottom: 28,
-              paddingTop: 12,
-              gap: 10,
-            }}
-          >
-            {/* Quiz mode: tap choices OR next button */}
-            {phase === "quiz" && !showFeedback && (
+          <View style={styles.inputArea}>
+            {phase === "quiz" && !showFeedback && currentExercise && (
               <TapChoices
                 key={currentExercise.id}
                 choices={currentExercise.choices}
@@ -365,90 +574,90 @@ export default function BuddyScreen() {
             )}
 
             {phase === "quiz" && showFeedback && (
-              <TouchableOpacity
-                onPress={nextExercise}
-                style={{
-                  backgroundColor: MATH_ORANGE,
-                  borderRadius: radius.pill,
-                  height: 52,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  shadowColor: MATH_ORANGE,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 3,
-                }}
-              >
+              <TouchableOpacity onPress={nextExercise} style={styles.nextBtn}>
                 <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 16, color: colors.cream }}>
-                  {exerciseIndex + 1 < EXERCISES.length ? "Sljedeći zadatak" : "Završi"}
+                  {exerciseIndex + 1 < exercises.length ? "Sljedeći zadatak" : "Završi"}
                 </Text>
               </TouchableOpacity>
             )}
 
-            {/* Conversation mode or greeting: text input + quiz start button */}
             {(phase === "conversation" || phase === "greeting") && (
               <>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    backgroundColor: colors.cream,
-                    borderRadius: radius.pill,
-                    borderWidth: 2,
-                    borderColor: "rgba(0,0,0,0.08)",
-                    paddingVertical: 10,
-                    paddingHorizontal: 16,
-                  }}
-                >
+                <View style={styles.micRow}>
+                  <Pressable
+                    onPressIn={startRecording}
+                    onPressOut={stopAndSend}
+                    style={[
+                      styles.micBtn,
+                      micState === "idle" && styles.micBtnIdle,
+                      micState === "listening" && styles.micBtnListening,
+                      (micState === "thinking" || micState === "speaking") &&
+                        styles.micBtnMuted,
+                    ]}
+                    disabled={micState === "thinking"}
+                  >
+                    {micState === "idle" && (
+                      <Text style={{ fontSize: 26 }}>🎤</Text>
+                    )}
+                    {micState === "listening" && (
+                      <View style={styles.waveformBars}>
+                        {[8, 18, 14, 20, 10].map((h, i) => (
+                          <View key={i} style={[styles.wbar, { height: h }]} />
+                        ))}
+                      </View>
+                    )}
+                    {micState === "thinking" && (
+                      <View style={styles.thinkDots}>
+                        <View style={styles.dot} />
+                        <View style={styles.dot} />
+                        <View style={styles.dot} />
+                      </View>
+                    )}
+                    {micState === "speaking" && (
+                      <Text style={{ fontSize: 26, opacity: 0.4 }}>🎤</Text>
+                    )}
+                  </Pressable>
+                  {micState === "idle" && (
+                    <Text style={styles.micHint}>Pritisni i govori</Text>
+                  )}
+                </View>
+
+                <View style={styles.textRow}>
                   <TextInput
                     value={input}
                     onChangeText={setInput}
-                    placeholder="Pitaj Cvrčaka..."
+                    placeholder="Ili upiši pitanje..."
                     placeholderTextColor={colors.muted}
-                    style={{
-                      flex: 1,
-                      fontFamily: fonts.body,
-                      fontSize: 15,
-                      color: colors.ink,
-                    }}
+                    style={styles.textInput}
                     returnKeyType="send"
                     onSubmitEditing={sendQuestion}
                     blurOnSubmit={false}
-                    editable={!loading}
+                    editable={!loading && micState === "idle"}
                     onFocus={() => setPhase("conversation")}
                   />
-                  <TouchableOpacity
-                    onPress={input.trim() ? sendQuestion : undefined}
-                    activeOpacity={0.75}
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: radius.pill,
-                      backgroundColor: input.trim() ? MATH_ORANGE : colors.line,
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text style={{ color: input.trim() ? colors.cream : colors.muted, fontSize: 16 }}>
-                      {input.trim() ? "↑" : "🎤"}
-                    </Text>
-                  </TouchableOpacity>
+                  {input.trim().length > 0 && (
+                    <TouchableOpacity onPress={sendQuestion} style={styles.sendBtn}>
+                      <Text style={{ color: colors.cream, fontSize: 16 }}>↑</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 <TouchableOpacity
                   onPress={startQuiz}
-                  style={{
-                    backgroundColor: colors.ink,
-                    borderRadius: radius.pill,
-                    height: 52,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
+                  disabled={exercisesLoading || exercises.length === 0}
+                  style={[
+                    styles.quizStartBtn,
+                    (exercisesLoading || exercises.length === 0) && { opacity: 0.5 },
+                  ]}
                 >
-                  <Text style={{ fontFamily: fonts.bodySemiBold, fontSize: 15, color: colors.cream }}>
-                    Vjezbaj razlomke
+                  <Text
+                    style={{
+                      fontFamily: "Baloo2_800ExtraBold",
+                      fontSize: 15,
+                      color: colors.cream,
+                    }}
+                  >
+                    Vježbaj razlomke
                   </Text>
                 </TouchableOpacity>
               </>
@@ -459,3 +668,242 @@ export default function BuddyScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.pagePadding,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  backBtn: {
+    backgroundColor: "rgba(0,0,0,0.06)",
+    borderRadius: radius.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  subjectLabel: {
+    fontFamily: fonts.mono,
+    fontSize: 11,
+    color: MATH_ORANGE,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  stage: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  driftWord: {
+    position: "absolute",
+    fontFamily: "Baloo2_800ExtraBold",
+    fontSize: 15,
+    color: MATH_ORANGE,
+  },
+  appleContainer: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  conceptCard: {
+    borderWidth: 3,
+    borderColor: "rgba(0,0,0,0.08)",
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 0,
+    elevation: 3,
+    backgroundColor: colors.cream,
+    padding: 16,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  karaokeStrip: {
+    backgroundColor: colors.cream,
+    marginHorizontal: spacing.pagePadding,
+    marginBottom: 8,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 0,
+    elevation: 2,
+    padding: 14,
+    minHeight: 56,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  karaokeText: {
+    textAlign: "center",
+    flexWrap: "wrap",
+  },
+  karaokeWord: {
+    fontFamily: "Baloo2_700Bold",
+    fontSize: 16,
+    color: colors.ink,
+    lineHeight: 24,
+  },
+  karaokeWordCurrent: {
+    color: MATH_ORANGE,
+    fontFamily: "Baloo2_800ExtraBold",
+  },
+  rewardContainer: {
+    alignItems: "center",
+    gap: 16,
+    paddingVertical: 24,
+    paddingHorizontal: spacing.pagePadding,
+  },
+  rewardTitle: {
+    fontFamily: "Baloo2_800ExtraBold",
+    fontSize: 24,
+    color: colors.ink,
+    textAlign: "center",
+  },
+  rewardScore: {
+    fontFamily: fonts.monoMedium,
+    fontSize: 16,
+    color: MATH_ORANGE,
+  },
+  rewardBtn: {
+    backgroundColor: colors.ink,
+    borderRadius: radius.pill,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    marginTop: 8,
+  },
+  inputArea: {
+    paddingHorizontal: spacing.pagePadding,
+    paddingBottom: 28,
+    paddingTop: 8,
+    gap: 10,
+  },
+  nextBtn: {
+    backgroundColor: MATH_ORANGE,
+    borderWidth: 3,
+    borderColor: "rgba(180,60,0,0.2)",
+    borderRadius: 100,
+    shadowColor: "rgba(180,60,0,1)",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 0,
+    elevation: 4,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  micRow: {
+    alignItems: "center",
+    gap: 8,
+  },
+  micBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  micBtnIdle: {
+    backgroundColor: MATH_ORANGE,
+    borderWidth: 3,
+    borderColor: "rgba(180,60,0,0.2)",
+    borderRadius: 100,
+    shadowColor: "rgba(180,60,0,1)",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  micBtnListening: {
+    backgroundColor: MATH_ORANGE,
+    borderWidth: 3,
+    borderColor: "rgba(180,60,0,0.2)",
+    borderRadius: 100,
+    shadowColor: "rgba(180,60,0,1)",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  micBtnMuted: {
+    backgroundColor: "rgba(0,0,0,0.07)",
+    borderWidth: 3,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 0,
+    elevation: 1,
+  },
+  waveformBars: {
+    flexDirection: "row",
+    gap: 3,
+    alignItems: "center",
+    height: 22,
+  },
+  wbar: {
+    width: 3,
+    backgroundColor: colors.cream,
+    borderRadius: 2,
+  },
+  thinkDots: {
+    flexDirection: "row",
+    gap: 5,
+    alignItems: "center",
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: MATH_ORANGE,
+  },
+  micHint: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.muted,
+    textAlign: "center",
+  },
+  textRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.cream,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: "rgba(0,0,0,0.08)",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  textInput: {
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  sendBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.pill,
+    backgroundColor: MATH_ORANGE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quizStartBtn: {
+    backgroundColor: colors.ink,
+    borderWidth: 3,
+    borderColor: "rgba(0,0,0,0.08)",
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 0,
+    elevation: 3,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
