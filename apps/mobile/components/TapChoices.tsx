@@ -98,8 +98,8 @@ function ChoiceButton({
       >
         <Text
           style={{
-            fontFamily: fonts.bodyBold,
-            fontSize: 20,
+            fontFamily: 'Baloo2_800ExtraBold',
+            fontSize: 22,
             color: textColor,
           }}
         >
