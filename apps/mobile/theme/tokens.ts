@@ -44,4 +44,6 @@ export const fonts = {
   bodyBold:       "DM_Sans_700Bold",
   mono:           "JetBrainsMono_400Regular",
   monoMedium:     "JetBrainsMono_500Medium",
+  buddyDisplay:   "Baloo2_800ExtraBold",
+  buddyBody:      "Baloo2_700Bold",
 } as const;
